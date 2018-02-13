@@ -3,7 +3,10 @@ module Main where
 import Data.Foldable
 import Data.Traversable
 import Data.List
+import Nix.Parser
+import Nix.Pretty
 import System.Process
+import Text.PrettyPrint.ANSI.Leijen
 
 data Dependency = Dependency
                 { name    :: String
@@ -14,10 +17,9 @@ parseDependency :: [String] -> [Dependency]
 parseDependency [depName, "==", depVersion] = [Dependency depName depVersion]
 parseDependency _                           = []
 
-runCabal2Nix :: Dependency -> IO ()
+runCabal2Nix :: Dependency -> IO String
 runCabal2Nix (Dependency depName depVersion) = do
   readProcess "cabal2nix" ["--hackage-db", "/home/sean/.cabal/packages/hackage.haskell.org/01-index.tar", "cabal://" ++ depName ++ "-" ++ depVersion] ""
-  return ()
 
 filterSpecialDependencies :: Dependency -> Bool
 filterSpecialDependencies (Dependency "base" _)         = False
@@ -42,4 +44,9 @@ main = do
   let dependencies = lines cabalFreezeOutput >>= (\line -> parseDependency $ words line)
 
   -- For each entry invoke cabal2nix.
-  traverse_ runCabal2Nix $ sort $ filter filterSpecialDependencies dependencies
+  results <- traverse runCabal2Nix $ sort $ filter filterSpecialDependencies dependencies
+  
+  let parsedResults = traverse parseNixString results
+  traverse_ (\r -> traverse_ (putDoc . prettyNix) r) parsedResults
+
+  return ()

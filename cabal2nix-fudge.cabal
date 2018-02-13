@@ -16,5 +16,7 @@ executable cabal2nix-fudge
   -- other-extensions:    
   build-depends:       base >=4.9 && <4.10
                      , process
+                     , hnix
+                     , ansi-wl-pprint
   -- hs-source-dirs:      
   default-language:    Haskell2010
